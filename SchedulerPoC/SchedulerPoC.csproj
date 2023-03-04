@@ -11,10 +11,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Actors\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\SchedulerPoC.Tasks\SchedulerPoC.Tasks.csproj" />
   </ItemGroup>
 

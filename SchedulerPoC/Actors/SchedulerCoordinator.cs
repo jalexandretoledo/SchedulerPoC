@@ -4,6 +4,7 @@ using SchedulerPoC.Commands;
 using SchedulerPoC.Messages;
 using SchedulerPoC.Messages.Internal;
 using SchedulerPoC.Tasks;
+using SchedulerPoC.Tasks.Exceptions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,13 +15,17 @@ namespace SchedulerPoC.Actors
 {
     internal class SchedulerCoordinator
         : ReceiveActor,
-        IWithUnboundedStash
+        IWithUnboundedStash,
+        IWithTimers
     {
 
         private readonly ILoggingAdapter logger = Context.GetLogger();
         private readonly List<ScheduledTaskStatus> tasks = new List<ScheduledTaskStatus>();
 
+        private readonly List<(bool IsBusy, IActorRef Runner)> runners = new List<(bool, IActorRef)>();
+
         public IStash? Stash { get; set; }
+        public ITimerScheduler? Timers { get; set; }
 
         public SchedulerCoordinator(String taskFile)
         {
@@ -72,9 +77,17 @@ namespace SchedulerPoC.Actors
                 {
                     if (scheduled.Status == ScheduleStatus.Waiting)
                     {
-                        tasks.Remove(scheduled);
-                        RunTask(msg.ScheduledTask);
-                        tasks.Add(new ScheduledTaskStatus(msg.ScheduledTask, ScheduleStatus.Running));
+                        if (RunTask(msg)) 
+                        {
+                            tasks.Remove(scheduled);
+                            tasks.Add(new ScheduledTaskStatus(msg.ScheduledTask, ScheduleStatus.Running));
+                        }
+                        else
+                        {
+                            logger.Warning("No runner available, will try again in 1 minute");
+                            var key = $"{msg.ScheduledTask.Schedule:HH:mm} {msg.ScheduledTask.Task.Description} ({msg.ScheduledTask.Task.GetType()})";
+                            Timers.StartSingleTimer(key, msg, TimeSpan.FromMinutes(1));
+                        }
                     }
                     else if (scheduled.Status == ScheduleStatus.Running)
                     {
@@ -168,7 +181,14 @@ namespace SchedulerPoC.Actors
             var self = Self;
             System.Threading.Tasks.Task.Run(() =>
                 {
-    
+                    TasksUtils.LoadTasksFromFile(source)
+                        .Match(
+                            error => throw new TaskLoadException(error, null),
+                            task =>
+                            {
+                                tasks.Clear();
+                                tasks.AddRange(task.ScheduledTasks);
+                            });
                 })
                 .ContinueWith<Object>(x =>
                 {
@@ -188,14 +208,26 @@ namespace SchedulerPoC.Actors
                         return new LoadError("Load was cancelled");
                     }
 
-                    return new Loaded(source, 0);
+                    return new Loaded(source, tasks.Count);
                 })
                 .PipeTo(self);
         }
 
-        private void RunTask(ScheduledTask task)
+        private bool RunTask(StartTask task)
         {
+            var pair = runners.FirstOrDefault(pair => !pair.IsBusy);
+            var runner = pair.Runner;
 
+            if (runner != null)
+            {
+                runner.Tell(task);
+                return true;
+            }
+            else
+            {
+                logger.Info("No runner available");
+                return false;
+            }
         }
 
         private void NotifyCompletion(ScheduledTaskStatus scheduledTaskStatus)
