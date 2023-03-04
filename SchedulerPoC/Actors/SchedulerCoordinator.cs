@@ -22,7 +22,7 @@ namespace SchedulerPoC.Actors
         private readonly ILoggingAdapter logger = Context.GetLogger();
         private readonly List<ScheduledTaskStatus> tasks = new List<ScheduledTaskStatus>();
 
-        private readonly List<(bool IsBusy, IActorRef Runner)> runners = new List<(bool, IActorRef)>();
+        private readonly List<Runner> runners = new List<Runner>();
 
         public IStash? Stash { get; set; }
         public ITimerScheduler? Timers { get; set; }
@@ -52,12 +52,12 @@ namespace SchedulerPoC.Actors
         {
             Receive<Loaded>(msg =>
             {
-                Become(Working);
+                BecomeWorking();
             });
 
             Receive<LoadError>(msg =>
             {
-
+                throw new TaskLoadException(msg.Description, msg.Exception);
             });
 
             ReceiveAny(msg =>
@@ -69,7 +69,6 @@ namespace SchedulerPoC.Actors
 
         private void Working()
         {
-
             Receive<StartTask>(msg =>
             {
                 var scheduled = tasks.FirstOrDefault(ts => ts.ScheduledTask == msg.ScheduledTask);
@@ -85,7 +84,7 @@ namespace SchedulerPoC.Actors
                         else
                         {
                             logger.Warning("No runner available, will try again in 1 minute");
-                            var key = $"{msg.ScheduledTask.Schedule:HH:mm} {msg.ScheduledTask.Task.Description} ({msg.ScheduledTask.Task.GetType()})";
+                            var key = MakeKey(msg.ScheduledTask);
                             Timers.StartSingleTimer(key, msg, TimeSpan.FromMinutes(1));
                         }
                     }
@@ -176,6 +175,29 @@ namespace SchedulerPoC.Actors
 
         }
 
+        private void BecomeWorking()
+        {
+            foreach (var task in tasks)
+            {
+                var status = task.Status;
+                if (status == ScheduleStatus.Waiting)
+                {
+                    var runTime = task.ScheduledTask.Schedule;
+
+                    var key = MakeKey(task.ScheduledTask);
+                    var when = (runTime - DateTime.Now);
+                    if (when.TotalSeconds < 30)
+                    {
+                        when = TimeSpan.FromSeconds(30);
+                    }
+
+                    Timers.StartSingleTimer(key, new StartTask(task.ScheduledTask), when);
+                }
+            }
+
+            Become(Working);
+        }
+
         private void LoadTasksFromFile(string source)
         {
             var self = Self;
@@ -215,12 +237,10 @@ namespace SchedulerPoC.Actors
 
         private bool RunTask(StartTask task)
         {
-            var pair = runners.FirstOrDefault(pair => !pair.IsBusy);
-            var runner = pair.Runner;
-
+            var runner = runners.FirstOrDefault(r => !r.IsBusy);
             if (runner != null)
             {
-                runner.Tell(task);
+                runner.Start(task);
                 return true;
             }
             else
@@ -234,5 +254,34 @@ namespace SchedulerPoC.Actors
         {
 
         }
+
+        private static string MakeKey(ScheduledTask st)
+        {
+            return $"{st.Schedule:HH:mm} {st.Task.Description} ({st.Task.GetType()})";
+        }
+
+        private class Runner
+        {
+            public bool IsBusy { get; private set; }
+            public IActorRef TaskRunner { get; set; }
+            public Runner(IActorRef taskRunner)
+            {
+                TaskRunner = taskRunner;
+                IsBusy = false;
+            }
+
+            public void Start(StartTask command)
+            {
+                if (IsBusy)
+                {
+                    throw new TaskRunException("Runner is already busy!");
+                }
+
+                IsBusy = true;
+                TaskRunner.Tell(command);
+            }
+
+        }
+
     }
 }
