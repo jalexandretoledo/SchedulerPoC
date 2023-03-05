@@ -8,11 +8,13 @@ namespace SchedulerPoC.Tasks
 {
     public sealed record ScheduledTask
     {
+        public string TaskId { get; }
         public Task Task { get; }
         public DateTime Schedule { get; }
 
-        public ScheduledTask(Task task, DateTime schedule)
+        public ScheduledTask(string taskId, Task task, DateTime schedule)
         {
+            TaskId = taskId;
             Task = task;
             Schedule = schedule;
         }

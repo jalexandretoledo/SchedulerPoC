@@ -20,7 +20,7 @@ namespace SchedulerPoC.Actors
     {
 
         private readonly ILoggingAdapter logger = Context.GetLogger();
-        private readonly List<ScheduledTaskStatus> tasks = new List<ScheduledTaskStatus>();
+        private readonly Dictionary<string, ScheduledTaskStatus> tasks = new Dictionary<string, ScheduledTaskStatus>();
 
         private readonly List<Runner> runners = new List<Runner>();
 
@@ -71,15 +71,13 @@ namespace SchedulerPoC.Actors
         {
             Receive<StartTask>(msg =>
             {
-                var scheduled = tasks.FirstOrDefault(ts => ts.ScheduledTask == msg.ScheduledTask);
-                if (scheduled != null)
+                if (tasks.TryGetValue(msg.ScheduledTask.TaskId, out var scheduled))
                 {
                     if (scheduled.Status == ScheduleStatus.Waiting)
                     {
                         if (RunTask(msg)) 
                         {
-                            tasks.Remove(scheduled);
-                            tasks.Add(new ScheduledTaskStatus(msg.ScheduledTask, ScheduleStatus.Running));
+                            tasks[msg.ScheduledTask.TaskId] = new ScheduledTaskStatus(msg.ScheduledTask, ScheduleStatus.Running);
                         }
                         else
                         {
@@ -105,8 +103,7 @@ namespace SchedulerPoC.Actors
 
             Receive<TaskRunCompleted>(msg =>
             {
-                var scheduled = tasks.FirstOrDefault(ts => ts.ScheduledTask == msg.ScheduledTask);
-                if (scheduled != null)
+                if (tasks.TryGetValue(msg.ScheduledTask.TaskId, out var scheduled))
                 {
                     if (scheduled.Status == ScheduleStatus.Waiting)
                     {
@@ -114,9 +111,8 @@ namespace SchedulerPoC.Actors
                     }
                     else if (scheduled.Status == ScheduleStatus.Running)
                     {
-                        tasks.Remove(scheduled);
                         var completed = new ScheduledTaskStatus(msg.ScheduledTask, ScheduleStatus.Completed);
-                        tasks.Add(completed);
+                        tasks[msg.ScheduledTask.TaskId] = completed;
                         NotifyCompletion(completed);
                     }
                     else
@@ -133,25 +129,23 @@ namespace SchedulerPoC.Actors
 
             Receive<AddScheduledTask>(msg =>
             {
-                var scheduled = tasks.FirstOrDefault(ts => ts.ScheduledTask == msg.ScheduledTask);
-                if (scheduled != null)
+                if (tasks.TryGetValue(msg.ScheduledTask.TaskId, out var scheduled))
                 {
                     logger.Info("Task is already scheduled: {0}", msg.ScheduledTask);
                 }
                 else
                 {
-                    tasks.Add(new ScheduledTaskStatus(msg.ScheduledTask, ScheduleStatus.Waiting));
+                    tasks[msg.ScheduledTask.TaskId] = new ScheduledTaskStatus(msg.ScheduledTask, ScheduleStatus.Waiting);
                 }
             });
 
             Receive<RemoveScheduledTask>(msg =>
             {
-                var scheduled = tasks.FirstOrDefault(ts => ts.ScheduledTask == msg.ScheduledTask);
-                if (scheduled != null)
+                if (tasks.TryGetValue(msg.ScheduledTask.TaskId, out var scheduled))
                 {
                     if (scheduled.Status == ScheduleStatus.Waiting)
                     {
-                        tasks.Remove(scheduled);
+                        tasks.Remove(scheduled.ScheduledTask.TaskId);
                     }
                     else if (scheduled.Status == ScheduleStatus.Running)
                     {
@@ -170,28 +164,27 @@ namespace SchedulerPoC.Actors
 
             Receive<GetScheduledTasks>(msg =>
             {
-                Sender.Tell(new ScheduledTasksList(tasks));
+                Sender.Tell(new ScheduledTasksList(tasks.Values));
             });
 
         }
 
         private void BecomeWorking()
         {
-            foreach (var task in tasks)
+            foreach (var task in tasks.Values)
             {
                 var status = task.Status;
                 if (status == ScheduleStatus.Waiting)
                 {
                     var runTime = task.ScheduledTask.Schedule;
 
-                    var key = MakeKey(task.ScheduledTask);
                     var when = (runTime - DateTime.Now);
                     if (when.TotalSeconds < 30)
                     {
                         when = TimeSpan.FromSeconds(30);
                     }
 
-                    Timers.StartSingleTimer(key, new StartTask(task.ScheduledTask), when);
+                    Timers.StartSingleTimer(task.ScheduledTask.TaskId, new StartTask(task.ScheduledTask), when);
                 }
             }
 
@@ -209,7 +202,10 @@ namespace SchedulerPoC.Actors
                             task =>
                             {
                                 tasks.Clear();
-                                tasks.AddRange(task.ScheduledTasks);
+                                foreach (var st in task.ScheduledTasks)
+                                {
+                                    tasks[st.ScheduledTask.TaskId] = st;
+                                }
                             });
                 })
                 .ContinueWith<Object>(x =>

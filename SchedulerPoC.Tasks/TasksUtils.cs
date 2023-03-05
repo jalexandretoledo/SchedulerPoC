@@ -72,7 +72,7 @@ namespace SchedulerPoC.Tasks
                 var task = new ExcelTask(m.Groups[3].Value, m.Groups[4].Value);
                 var time = DateTime.Today.AddHours(hour).AddMinutes(minutes);
 
-                return new Right<string, ScheduledTask>(new ScheduledTask(task, time));
+                return new Right<string, ScheduledTask>(new ScheduledTask(GetNewKey(), task, time));
             }
 
             m = rePy.Match(src);
@@ -94,7 +94,7 @@ namespace SchedulerPoC.Tasks
                 var task = new PythonTask(m.Groups[3].Value, m.Groups[4].Value, parameters, m.Groups[6].Value);
                 var time = DateTime.Today.AddHours(hour).AddMinutes(minutes);
 
-                return new Right<string, ScheduledTask>(new ScheduledTask(task, time));
+                return new Right<string, ScheduledTask>(new ScheduledTask(GetNewKey(), task, time));
             }
 
             return new Left<string, ScheduledTask>($"Unknown: {src}");
@@ -108,6 +108,11 @@ namespace SchedulerPoC.Tasks
             }
 
             return new ScheduledTaskStatus(task, ScheduleStatus.Waiting);
+        }
+
+        public static string GetNewKey()
+        {
+            return Guid.NewGuid().ToString();
         }
 
     }
