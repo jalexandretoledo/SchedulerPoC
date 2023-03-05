@@ -74,7 +74,7 @@ namespace SchedulerPoC.Actors
                 {
                     FileName = pyTask.PythonScript,
                     WorkingDirectory = Path.GetDirectoryName(pyTask.PythonScript),
-                    UseShellExecute = true,
+                    UseShellExecute = false,
                 };
 
                 foreach (var p in pyTask.Parameters)

@@ -19,6 +19,7 @@ namespace SchedulerPoC.GUI.Actors
         private IActorRef coordinator;
         private List<GridRowWrapper> taskList { get; }
         private DataGridView Grid { get; }
+        private readonly Guid MySubscriptionId = Guid.NewGuid();
 
         public GUIActor(IActorRef coord, DataGridView grid)
         {
@@ -28,6 +29,7 @@ namespace SchedulerPoC.GUI.Actors
             Grid = grid;
 
             Become(Running);
+            coordinator.Tell(new Subscribe(MySubscriptionId));
         }
 
         public void Running()

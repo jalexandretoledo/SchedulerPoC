@@ -10,5 +10,6 @@ namespace SchedulerPoC
     {
 
         public static string ExcelPath { get; set; }
+        public static int RunnersCount { get; set; } = 5;
     }
 }

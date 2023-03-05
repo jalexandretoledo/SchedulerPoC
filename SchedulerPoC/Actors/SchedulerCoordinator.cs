@@ -19,22 +19,33 @@ namespace SchedulerPoC.Actors
         IWithTimers
     {
 
+        private ActorSystem ActorSystem { get; }
         private readonly ILoggingAdapter logger = Context.GetLogger();
         private readonly Dictionary<string, ScheduledTaskStatus> tasks = new Dictionary<string, ScheduledTaskStatus>();
 
         private readonly List<Runner> runners = new List<Runner>();
 
+        private readonly Dictionary<string, IActorRef> subscribers = new Dictionary<string, IActorRef>();
+
         public IStash? Stash { get; set; }
         public ITimerScheduler? Timers { get; set; }
 
-        public SchedulerCoordinator(ScheduledTasksList? newTasksList)
+        public SchedulerCoordinator(ActorSystem actorSys, ScheduledTasksList? newTasksList)
         {
+            ActorSystem = actorSys;
+
             if (newTasksList != null)
             {
                 foreach (var st in newTasksList.ScheduledTasks)
                 {
                     tasks[st.ScheduledTask.TaskId] = st;
                 }
+            }
+
+            for (var i = 0; i < SchedulerConfig.RunnersCount; i++)
+            {
+                var runnerRef = ActorSystem.ActorOf(Props.Create(() => new TaskRunner(Self)), $"runner_{i + 1}");
+                runners.Add(new Runner(runnerRef));
             }
 
             Become(Loading);
@@ -124,7 +135,13 @@ namespace SchedulerPoC.Actors
                 }
                 else
                 {
-                    var sts = new ScheduledTaskStatus(msg.ScheduledTask, ScheduleStatus.Waiting);
+                    var status = ScheduleStatus.Waiting;
+                    if (msg.ScheduledTask.Schedule < DateTime.Now)
+                    {
+                        status = ScheduleStatus.Past;
+                    }
+
+                    var sts = new ScheduledTaskStatus(msg.ScheduledTask, status);
                     tasks[msg.ScheduledTask.TaskId] = sts;
                     ScheduleTrigger(sts);
                 }
@@ -158,6 +175,15 @@ namespace SchedulerPoC.Actors
                 Sender.Tell(new ScheduledTasksList(tasks.Values));
             });
 
+            Receive<Subscribe>(msg =>
+            {
+                subscribers[msg.Id.ToString()] = Sender;
+            });
+
+            Receive<Subscribe>(msg =>
+            {
+                subscribers.Remove(msg.Id.ToString());
+            });
         }
 
         private void BecomeWorking()
@@ -203,7 +229,10 @@ namespace SchedulerPoC.Actors
 
         private void NotifyCompletion(ScheduledTaskStatus scheduledTaskStatus)
         {
-
+            foreach (var subscriber in subscribers.Values)
+            {
+                subscriber.Tell(new ScheduledTasksList(tasks.Values));
+            }
         }
 
         private static string MakeKey(ScheduledTask st)

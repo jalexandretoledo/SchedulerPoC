@@ -13,7 +13,7 @@ namespace SchedulerPoC
         {
             System = ActorSystem.Create("SchedulerPoCActorSystem");
 
-            Coordinator = System.ActorOf(Props.Create(() => new SchedulerCoordinator(null)), "coordinator");
+            Coordinator = System.ActorOf(Props.Create(() => new SchedulerCoordinator(System, null)), "coordinator");
         }
 
         public async void Stop()
