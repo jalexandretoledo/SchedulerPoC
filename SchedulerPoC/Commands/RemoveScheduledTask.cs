@@ -8,7 +8,7 @@ using SchedulerPoC.Tasks;
 
 namespace SchedulerPoC.Commands
 {
-    internal class RemoveScheduledTask
+    public class RemoveScheduledTask
     {
         public ScheduledTask ScheduledTask { get; }
         public RemoveScheduledTask(ScheduledTask scheduledTask)

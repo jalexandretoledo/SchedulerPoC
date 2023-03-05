@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace SchedulerPoC.Commands
 {
-    internal class GetScheduledTasks
+    public class GetScheduledTasks
     {
 
     }

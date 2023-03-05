@@ -5,11 +5,15 @@ VisualStudioVersion = 17.5.33424.131
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SchedulerPoC", "SchedulerPoC\SchedulerPoC.csproj", "{D937DEDB-BF15-4BD1-95BD-10F45520D0E1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SchedulerPoC.Tasks", "SchedulerPoC.Tasks\SchedulerPoC.Tasks.csproj", "{1DE772A0-6BAB-47E2-A3B1-62FE80C15F5A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SchedulerPoC.Tasks", "SchedulerPoC.Tasks\SchedulerPoC.Tasks.csproj", "{1DE772A0-6BAB-47E2-A3B1-62FE80C15F5A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SchedulerPoC.Utils", "SchedulerPoC.Utils\SchedulerPoC.Utils.csproj", "{1F8E5EBD-1D0C-4589-A390-82C846803D84}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SchedulerPoC.Utils", "SchedulerPoC.Utils\SchedulerPoC.Utils.csproj", "{1F8E5EBD-1D0C-4589-A390-82C846803D84}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SchedulerPoC.Tests", "SchedulerPoC.Tests\SchedulerPoC.Tests.csproj", "{ABA12763-8482-42DE-8EE2-99B9D2EE64D1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SchedulerPoC.Tests", "SchedulerPoC.Tests\SchedulerPoC.Tests.csproj", "{ABA12763-8482-42DE-8EE2-99B9D2EE64D1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SchedulerPoC.Console", "SchedulerPoC.Console\SchedulerPoC.Console.csproj", "{C1578441-DDC4-4D86-A548-25B2DAA2AE02}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SchedulerPoC.GUI", "SchedulerPoC.GUI\SchedulerPoC.GUI.csproj", "{76903BFE-9C01-4914-B8D3-D47E3839C203}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +37,14 @@ Global
 		{ABA12763-8482-42DE-8EE2-99B9D2EE64D1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ABA12763-8482-42DE-8EE2-99B9D2EE64D1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{ABA12763-8482-42DE-8EE2-99B9D2EE64D1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C1578441-DDC4-4D86-A548-25B2DAA2AE02}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C1578441-DDC4-4D86-A548-25B2DAA2AE02}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C1578441-DDC4-4D86-A548-25B2DAA2AE02}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C1578441-DDC4-4D86-A548-25B2DAA2AE02}.Release|Any CPU.Build.0 = Release|Any CPU
+		{76903BFE-9C01-4914-B8D3-D47E3839C203}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{76903BFE-9C01-4914-B8D3-D47E3839C203}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{76903BFE-9C01-4914-B8D3-D47E3839C203}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{76903BFE-9C01-4914-B8D3-D47E3839C203}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

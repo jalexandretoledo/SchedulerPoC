@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net6.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SchedulerPoC.Tasks\SchedulerPoC.Tasks.csproj" />
+    <ProjectReference Include="..\SchedulerPoC.Utils\SchedulerPoC.Utils.csproj" />
+    <ProjectReference Include="..\SchedulerPoC\SchedulerPoC.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Sample\sample.tasks">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

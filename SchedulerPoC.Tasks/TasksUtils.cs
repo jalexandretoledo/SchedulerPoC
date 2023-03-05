@@ -43,7 +43,7 @@ namespace SchedulerPoC.Tasks
             if (errors.Any())
             {
                 var asStr = String.Join("\n\t", errors.ToArray());
-                return new Left<string, ScheduledTasksList>($"Errors found when loading schedules:\n{asStr}");
+                return new Left<string, ScheduledTasksList>($"Errors found when loading schedules:\n\t{asStr}");
             }
             else
             {

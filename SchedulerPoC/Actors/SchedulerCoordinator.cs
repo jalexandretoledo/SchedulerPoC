@@ -27,37 +27,26 @@ namespace SchedulerPoC.Actors
         public IStash? Stash { get; set; }
         public ITimerScheduler? Timers { get; set; }
 
-        public SchedulerCoordinator(String taskFile)
+        public SchedulerCoordinator(ScheduledTasksList? newTasksList)
         {
-            Become(Unloaded);
-            Self.Tell(new LoadTasks(taskFile));
+            if (newTasksList != null)
+            {
+                foreach (var st in newTasksList.ScheduledTasks)
+                {
+                    tasks[st.ScheduledTask.TaskId] = st;
+                }
+            }
+
+            Become(Loading);
+            Self.Tell(new Loaded());
         }
 
-        public void Unloaded() 
-        {
-            Receive<LoadTasks>(lt =>
-            {
-                LoadTasksFromFile(lt.Source);
-                Become(Loading);
-            });
-
-            ReceiveAny(msg =>
-            {
-                logger.Warning("Received {0} while unloaded. Stashed.", msg);
-                Stash.Stash();
-            });
-        }
 
         private void Loading()
         {
             Receive<Loaded>(msg =>
             {
                 BecomeWorking();
-            });
-
-            Receive<LoadError>(msg =>
-            {
-                throw new TaskLoadException(msg.Description, msg.Exception);
             });
 
             ReceiveAny(msg =>
@@ -135,7 +124,9 @@ namespace SchedulerPoC.Actors
                 }
                 else
                 {
-                    tasks[msg.ScheduledTask.TaskId] = new ScheduledTaskStatus(msg.ScheduledTask, ScheduleStatus.Waiting);
+                    var sts = new ScheduledTaskStatus(msg.ScheduledTask, ScheduleStatus.Waiting);
+                    tasks[msg.ScheduledTask.TaskId] = sts;
+                    ScheduleTrigger(sts);
                 }
             });
 
@@ -173,64 +164,28 @@ namespace SchedulerPoC.Actors
         {
             foreach (var task in tasks.Values)
             {
-                var status = task.Status;
-                if (status == ScheduleStatus.Waiting)
-                {
-                    var runTime = task.ScheduledTask.Schedule;
-
-                    var when = (runTime - DateTime.Now);
-                    if (when.TotalSeconds < 30)
-                    {
-                        when = TimeSpan.FromSeconds(30);
-                    }
-
-                    Timers.StartSingleTimer(task.ScheduledTask.TaskId, new StartTask(task.ScheduledTask), when);
-                }
+                ScheduleTrigger(task);
             }
 
             Become(Working);
         }
 
-        private void LoadTasksFromFile(string source)
+        private void ScheduleTrigger(ScheduledTaskStatus sts)
         {
-            var self = Self;
-            System.Threading.Tasks.Task.Run(() =>
-                {
-                    TasksUtils.LoadTasksFromFile(source)
-                        .Match(
-                            error => throw new TaskLoadException(error, null),
-                            task =>
-                            {
-                                tasks.Clear();
-                                foreach (var st in task.ScheduledTasks)
-                                {
-                                    tasks[st.ScheduledTask.TaskId] = st;
-                                }
-                            });
-                })
-                .ContinueWith<Object>(x =>
-                {
-                    if (x.IsFaulted)
-                    {
-                        if (x.Exception != null)
-                        {
-                            return new LoadError(x.Exception);
-                        }
-                        else
-                        {
-                            return new LoadError("Load was cancelled with an error");
-                        }
-                    }
-                    else if (x.IsCanceled)
-                    {
-                        return new LoadError("Load was cancelled");
-                    }
+            var status = sts.Status;
+            if (status == ScheduleStatus.Waiting)
+            {
+                var runTime = sts.ScheduledTask.Schedule;
 
-                    return new Loaded(source, tasks.Count);
-                })
-                .PipeTo(self);
+                var when = (runTime - DateTime.Now);
+                if (when.TotalSeconds < 30)
+                {
+                    when = TimeSpan.FromSeconds(30);
+                }
+
+                Timers.StartSingleTimer(sts.ScheduledTask.TaskId, new StartTask(sts.ScheduledTask), when);
+            }
         }
-
         private bool RunTask(StartTask task)
         {
             var runner = runners.FirstOrDefault(r => !r.IsBusy);

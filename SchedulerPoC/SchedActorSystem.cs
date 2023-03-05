@@ -1,20 +1,24 @@
 ﻿using Akka.Actor;
+using SchedulerPoC.Actors;
 
 namespace SchedulerPoC
 {
     public class SchedActorSystem
     {
 
-        private ActorSystem system;
+        public ActorSystem System { get; }
+        public IActorRef Coordinator { get; } 
 
         public SchedActorSystem()
         {
-            system = ActorSystem.Create("SchedulerPoCActorSystem");
+            System = ActorSystem.Create("SchedulerPoCActorSystem");
+
+            Coordinator = System.ActorOf(Props.Create(() => new SchedulerCoordinator(null)), "coordinator");
         }
 
         public async void Stop()
         {
-            await system.Terminate();
+            await System.Terminate();
         }
 
     }

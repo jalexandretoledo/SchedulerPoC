@@ -8,13 +8,8 @@ namespace SchedulerPoC.Messages.Internal
 {
     internal class Loaded
     {
-        public String Source { get; }
-        public Int32 TasksLoaded { get; }
-
-        public Loaded(string source, int tasksLoaded)
+        public Loaded()
         {
-            Source = source;
-            TasksLoaded = tasksLoaded;
         }  
     }
 }
